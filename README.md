@@ -66,6 +66,3 @@ Copy the example environment file in the backend to start configuring external i
 cp dlp-backend/.env.example dlp-backend/.env
 ```
 
-## License
-
-MIT
