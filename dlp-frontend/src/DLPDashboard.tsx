@@ -209,7 +209,7 @@ export default function DLPDashboard() {
     <div className="dashboard-container">
       <div className="header">
         <ShieldAlert className="title-icon" color="#ff5252" style={{ marginRight: '10px' }} />
-        <div className="title">ANTI-GRAVITY EXFILTRATION MONITOR</div>
+        <div className="title">HARMLESS EXFILTRATION MONITOR</div>
       </div>
       
       <div className="content" ref={containerRef}>

@@ -1,6 +1,6 @@
 # Harmless Exfiltration Monitor
 
-Anti-Gravity Exfiltration Monitor is a multi-component Data Loss Prevention (DLP) and network monitoring solution designed to detect, track, and visualize potentially sensitive data flows in real-time.
+Harmless Exfiltration Monitor is a multi-component Data Loss Prevention (DLP) and network monitoring solution designed to detect, track, and visualize potentially sensitive data flows in real-time.
 
 ## Architecture
 
