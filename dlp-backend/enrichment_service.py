@@ -7,6 +7,7 @@ import sqlite3
 from typing import Dict, Any, Tuple
 from datetime import datetime, timedelta
 import ssl
+from cachetools import LRUCache
 
 # Mock Databases for Demo Mode Enrichment
 KNOWN_DOMAINS = {
@@ -21,7 +22,7 @@ class EnrichmentService:
         self.db_path = db_path
         self._init_db()
         # Fallback in-memory cache for speed and during startup
-        self.cache = {}
+        self.cache = LRUCache(maxsize=1000)
         self.abuseipdb_key = os.environ.get("ABUSEIPDB_API_KEY")
 
     def _init_db(self):
@@ -176,31 +177,8 @@ class EnrichmentService:
                 print(f"AbuseIPDB API failed for {ip}: {e}")
 
         # Fallback if API fails or rate limited
-        rand_val = random.random()
-        if rand_val > 0.7:
-            result["organization"] = f"AS{random.randint(1000, 99999)} Hosting"
-            result["country"] = random.choice(["CN", "RU", "BR", "IN", "DE", "FR"])
-            result["confidence_score"] = 40
-            result["resolution_source"] = "GeoIP/ASN (Low Confidence)"
-            # Give it some random coordinates to avoid all points at 0,0 and jitter to avoid stacking
-            lat_jitter = random.uniform(-2.0, 2.0)
-            lon_jitter = random.uniform(-2.0, 2.0)
-            if result["country"] == "CN": result["lat"], result["lon"] = 35.8617 + lat_jitter, 104.1954 + lon_jitter
-            if result["country"] == "RU": result["lat"], result["lon"] = 61.5240 + lat_jitter, 105.3188 + lon_jitter
-            else: result["lat"], result["lon"] = random.uniform(-50, 50), random.uniform(-100, 100)
-        elif rand_val > 0.4:
-            result["domain"] = f"node-{random.randint(1,999)}.compute.cloud.net"
-            result["organization"] = "Generic Cloud Provider"
-            result["service_label"] = "Cloud VM"
-            result["country"] = "US"
-            # Jitter to avoid perfect stacking of single dots on the map
-            result["lat"] = 39.8283 + random.uniform(-5.0, 5.0)
-            result["lon"] = -98.5795 + random.uniform(-10.0, 10.0)
-            result["confidence_score"] = 70
-            result["resolution_source"] = "Reverse DNS (Medium Confidence)"
-        else:
-            result["confidence_score"] = 0
-            result["resolution_source"] = "Unresolved (No DNS seen, IPs not in DB)"
+        result["confidence_score"] = 0
+        result["resolution_source"] = "Unresolved API Failure"
 
         self.cache[ip] = result
         self._save_to_db(ip, result)

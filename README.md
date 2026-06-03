@@ -1,37 +1,35 @@
 # Harmless Exfiltration Monitor
 
+**Created by Divyanshu Rai (BE CSE CYBERSEC)**
+
 Harmless Exfiltration Monitor is a multi-component Data Loss Prevention (DLP) and network monitoring solution designed to detect, track, and visualize potentially sensitive data flows in real-time.
 
-## Architecture
+## Features
 
-The project consists of three main components:
+- **Live Network Sniffing**: Uses `scapy` to capture packets directly off your network interface.
+- **Deep Packet Inspection (DLP)**: Real-time regex payload scanning to detect unencrypted Social Security Numbers, Credit Cards, and API Keys leaking over the network.
+- **GeoIP Enrichment**: Automatically resolves IP addresses to physical locations and ASN names using the `ip-api.com` service.
+- **AI Analyst**: Built-in incident response AI powered by local `Ollama` (llama3.1) to analyze malicious network flows and recommend actions instantly.
+- **Real-Time Dashboard**: A modern React frontend featuring D3.js Sankey diagrams, a global threat map, and a live WebSocket feed of network activity.
 
-1. **`dlp-sensor` (Rust)**
-   - High-performance network packet sniffer and pattern classification engine built with Rust and `pcap`.
-   - Inspects TCP/UDP payloads for sensitive patterns (e.g., emails, sensitive keywords).
-   - Broadcasts packet metrics via WebSockets (`ws://0.0.0.0:9001`).
+## Tools & Technologies Used
 
-2. **`dlp-backend` (Python / FastAPI)**
-   - API and WebSocket server built with FastAPI.
-   - Handles data enrichment (e.g., GeoIP), risk evaluation, and stores flow history in a SQLite database (`flows.db`).
-   - Includes a fallback Scapy-based sniffer and simulation engine for demo purposes.
-   - Provides live updates to the frontend via `ws://localhost:8000/ws/live`.
-
-3. **`dlp-frontend` (React / TypeScript / Vite)**
-   - Modern, dynamic React frontend built with Vite.
-   - Features rich visualizations including a D3.js Sankey diagram for data flow tracking, geographical maps, and an AI Analyst interface.
-   - Real-time packet alerts and continuous dashboard updates.
+- **Frontend**: React, TypeScript, Vite, TailwindCSS, Zustand, D3.js
+- **Backend**: Python, FastAPI, Scapy, Uvicorn, SQLite
+- **AI/Machine Learning**: Ollama (llama3.1)
+- **External Services**: ip-api.com (GeoIP resolution)
 
 ## Prerequisites
 
 - **Node.js** (v18+) for the frontend.
 - **Python** (3.9+) for the backend.
-- **Rust/Cargo** for the network sensor.
-- **libpcap** for network packet capture.
+- **Ollama** installed locally (with `llama3.1` model pulled) for the AI Analyst feature.
 
 ## Setup and Running
 
 ### 1. Backend (`dlp-backend`)
+Note: Packet capturing with `scapy` requires elevated privileges (sudo).
+
 ```bash
 cd dlp-backend
 python -m venv venv
@@ -39,7 +37,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 
 # Start the server (runs on port 8000)
-uvicorn main:app --host 0.0.0.0 --port 8000
+sudo ./venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
 ### 2. Frontend (`dlp-frontend`)
@@ -51,18 +49,12 @@ npm install
 npm run dev
 ```
 
-### 3. Sensor (`dlp-sensor`)
-Note: Packet capturing requires elevated privileges.
+### 3. AI Analyst (Ollama)
+Ensure your local Ollama server is running in the background:
 ```bash
-cd dlp-sensor
-cargo build
-sudo ./target/debug/dlp-sensor --interface en0
+ollama serve
 ```
 
-## Environment Variables
+## License
 
-Copy the example environment file in the backend to start configuring external integrations:
-```bash
-cp dlp-backend/.env.example dlp-backend/.env
-```
-
+MIT

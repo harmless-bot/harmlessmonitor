@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import type { Flow, FlowHistoryItem, SystemStats } from '../types';
-import { demoFlows, demoHistory, demoStats } from '../data/demoFlows';
 
 interface DlpState {
   flows: Flow[];
@@ -48,14 +47,14 @@ const toFlowStat = (flow: Flow) => {
 };
 
 export const useDlpStore = create<DlpState>((set) => ({
-  flows: demoFlows,
-  alerts: demoFlows.filter(isAlert),
-  history: demoHistory,
-  stats: demoStats,
+  flows: [],
+  alerts: [],
+  history: [],
+  stats: { packets_total: 0, sensitive_total: 0, fps: 0, latency_ms: 0, flows: [] },
   investigatingFlow: null,
   investigatingAlert: null,
   wsStatus: 'OFFLINE',
-  usingDemoData: true,
+  usingDemoData: false,
 
   addFlow: (flow) => set((state) => {
     const nextFlow = { simulated: false, ...flow };

@@ -35,13 +35,28 @@ export default function AIAnalyst() {
 
     try {
       const targetFlow = investigatingFlow || [...flows].sort((a, b) => b.risk_score - a.risk_score)[0];
+      
+      // Initialize an empty message for the assistant
+      setChatHistory(prev => [...prev, { role: 'assistant', content: '' }]);
+      
       const content = targetFlow
-        ? await analyzeFlowWithAI(targetFlow, aiProvider, aiApiKey, aiBaseUrl, aiModel, context)
+        ? await analyzeFlowWithAI(targetFlow, aiProvider, aiApiKey, aiBaseUrl, aiModel, context, (chunk) => {
+            setChatHistory(prev => {
+              const newHistory = [...prev];
+              newHistory[newHistory.length - 1].content += chunk;
+              return newHistory;
+            });
+          })
         : 'No flow context is available yet. Start the backend WebSocket or use demo mode to generate analyzable telemetry.';
-      setChatHistory(prev => [...prev, { 
-        role: 'assistant', 
-        content
-      }]);
+      
+      if (!targetFlow) {
+        setChatHistory(prev => {
+          const newHistory = [...prev];
+          newHistory[newHistory.length - 1].content = content;
+          return newHistory;
+        });
+      }
+
     } catch (error) {
       setChatHistory(prev => [...prev, {
         role: 'assistant',

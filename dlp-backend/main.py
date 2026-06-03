@@ -1,5 +1,7 @@
-from fastapi import FastAPI, WebSocket, BackgroundTasks
+from fastapi import FastAPI, WebSocket, BackgroundTasks, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+import httpx
 from typing import Optional, List, Dict, Any
 import asyncio
 from datetime import datetime
@@ -10,7 +12,6 @@ import json
 from capture_service import start_capture_thread, get_all_flows
 from enrichment_service import EnrichmentService
 from risk_engine import RiskEngine
-from simulation_service import SimulationService
 
 app = FastAPI(title="Harmless Exfiltration Monitor API")
 
@@ -56,7 +57,6 @@ connected_websockets: List[WebSocket] = []
 
 enrichment_service = EnrichmentService()
 risk_engine = RiskEngine()
-simulation_service = None
 
 def get_db_flows():
     cursor.execute('SELECT data FROM flows')
@@ -71,27 +71,12 @@ def save_flow(flow_dict: Dict[str, Any]):
 
 @app.on_event("startup")
 async def startup_event():
-    global event_queue, simulation_service
+    global event_queue
     event_queue = asyncio.Queue()
     loop = asyncio.get_running_loop()
     
-    # Check if DB is empty, if so, seed it with simulation data
-    cursor.execute('SELECT COUNT(*) FROM flows')
-    count = cursor.fetchone()[0]
-    
-    simulation_service = SimulationService(event_queue, enrichment_service, risk_engine, loop)
-    
-    if count == 0:
-        print("Database empty. Seeding with realistic simulated data...")
-        seeds = simulation_service.generate_seed_flows()
-        for f in seeds:
-            save_flow(f)
-            
-    # Start the simulation loop as a fallback/demo data source
-    # (In a production scenario, we would only run start_capture_thread)
-    asyncio.create_task(simulation_service.run_simulation_loop())
-    
-    # Start the scapy capture thread (will quietly fail/do nothing if no sudo)
+    print("Starting real packet capture...")
+    # Start the scapy capture thread (requires sudo for real traffic)
     thread = threading.Thread(target=start_capture_thread, args=(event_queue, loop), daemon=True)
     thread.start()
     
@@ -105,7 +90,7 @@ async def dispatch_events():
         flow = event["flow"]
         
         # Ensure flow is enriched and evaluated if it came from scapy
-        if "confidence_score" not in flow:
+        if event["type"] in ["new_flow", "update_flow"]:
             enriched = enrichment_service.enrich_ip(flow["dst_ip"])
             flow.update(enriched)
             risk_data = risk_engine.evaluate(flow)
@@ -133,6 +118,36 @@ def health():
 @app.get("/api/flows")
 def get_flows():
     return get_db_flows()
+
+@app.get("/api/stats")
+def get_stats():
+    flows = get_db_flows()
+    return {
+        "packets_total": sum(f.get("packet_count", 0) for f in flows),
+        "sensitive_total": sum(1 for f in flows if f.get("is_sensitive", False)),
+        "flows": flows[:500]
+    }
+
+@app.post("/api/ai/analyze")
+async def ai_analyze(request: Request):
+    body = await request.json()
+    model = body.get("model", "llama3.1")
+    prompt = body.get("prompt", "")
+    
+    async def ollama_stream():
+        async with httpx.AsyncClient() as client:
+            try:
+                async with client.stream("POST", "http://127.0.0.1:11434/api/generate", json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": True
+                }, timeout=30.0) as response:
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+            except Exception as e:
+                yield json.dumps({"error": str(e), "done": True}).encode()
+                
+    return StreamingResponse(ollama_stream(), media_type="application/x-ndjson")
 
 @app.websocket("/ws/live")
 async def websocket_live(ws: WebSocket):

@@ -1,6 +1,12 @@
 from typing import Dict, Any, List
+import re
 
 class RiskEngine:
+    def __init__(self):
+        self.ssn_pattern = re.compile(r'\b\d{3}-\d{2}-\d{4}\b')
+        self.cc_pattern = re.compile(r'\b(?:\d{4}[ -]?){3}\d{4}\b')
+        self.api_key_pattern = re.compile(r'(?i)(?:api_key|apikey|bearer|token)[\s:=]+["\']?([a-zA-Z0-9_\-]{16,})["\']?')
+
     def evaluate(self, flow: Dict[str, Any]) -> Dict[str, Any]:
         score = 0
         indicators = []
@@ -42,11 +48,38 @@ class RiskEngine:
             why.append(f"External threat intelligence reports risk score: {threat_score}")
             
         # 6. Suspicious Usage Type (VPN/Proxy/Tor)
-        usage_type = flow.get("enriched_usage_type", "").lower()
+        usage_type = (flow.get("enriched_usage_type") or "").lower()
         if any(x in usage_type for x in ["vpn", "proxy", "tor", "hosting"]):
             score += 20
             indicators.append("suspicious_usage_type")
             why.append(f"Destination is a known {usage_type} provider")
+
+        # 7. Payload Regex Detection (DLP)
+        snippets = flow.get("payload_snippets", [])
+        is_sensitive = False
+        for snippet in snippets:
+            if self.ssn_pattern.search(snippet):
+                score += 100
+                indicators.append("dlp_ssn_leak")
+                why.append("Potential SSN detected in unencrypted payload")
+                is_sensitive = True
+                break
+            
+        for snippet in snippets:
+            if self.cc_pattern.search(snippet):
+                score += 100
+                indicators.append("dlp_cc_leak")
+                why.append("Potential Credit Card detected in unencrypted payload")
+                is_sensitive = True
+                break
+                
+        for snippet in snippets:
+            if self.api_key_pattern.search(snippet):
+                score += 100
+                indicators.append("dlp_apikey_leak")
+                why.append("Potential API Key / Token detected in unencrypted payload")
+                is_sensitive = True
+                break
 
         # Cap score at 100
         score = min(score, 100)
@@ -71,5 +104,6 @@ class RiskEngine:
             "flags": indicators,
             "why_flagged": why,
             "strongest_indicators": indicators[:2] if indicators else ["none"],
-            "recommended_steps": "Analyze payload bytes" if score >= 60 else "No action needed"
+            "recommended_steps": "Analyze payload bytes" if score >= 60 else "No action needed",
+            "is_sensitive": is_sensitive
         }
