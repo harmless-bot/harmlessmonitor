@@ -1,6 +1,6 @@
 # Harmless Exfiltration Monitor
 
-**Created by Divyanshu Rai (BE CSE CYBERSEC)**
+**Created by Divyanshu Rai 
 
 Harmless Exfiltration Monitor is a multi-component Data Loss Prevention (DLP) and network monitoring solution designed to detect, track, and visualize potentially sensitive data flows in real-time.
 
