@@ -1,60 +1,43 @@
-# Harmless Exfiltration Monitor
+# Harmless Monitor
 
-**Created by Divyanshu Rai 
-
-Harmless Exfiltration Monitor is a multi-component Data Loss Prevention (DLP) and network monitoring solution designed to detect, track, and visualize potentially sensitive data flows in real-time.
+Data Loss Prevention (DLP) front-end monitoring dashboard for tracking network traffic anomalies and data exfiltration flows.
 
 ## Features
 
-- **Live Network Sniffing**: Uses `scapy` to capture packets directly off your network interface.
-- **Deep Packet Inspection (DLP)**: Real-time regex payload scanning to detect unencrypted Social Security Numbers, Credit Cards, and API Keys leaking over the network.
-- **GeoIP Enrichment**: Automatically resolves IP addresses to physical locations and ASN names using the `ip-api.com` service.
-- **AI Analyst**: Built-in incident response AI powered by local `Ollama` (llama3.1) to analyze malicious network flows and recommend actions instantly.
-- **Real-Time Dashboard**: A modern React frontend featuring D3.js Sankey diagrams, a global threat map, and a live WebSocket feed of network activity.
+- Real-time flow exfiltration anomaly dashboard (`flowAnalysis.ts`)
+- Geolocation IP resolution (`geoResolve.ts`)
+- Configurable alert threshold management views
 
-## Tools & Technologies Used
+## Tech Stack
 
-- **Frontend**: React, TypeScript, Vite, TailwindCSS, Zustand, D3.js
-- **Backend**: Python, FastAPI, Scapy, Uvicorn, SQLite
-- **AI/Machine Learning**: Ollama (llama3.1)
-- **External Services**: ip-api.com (GeoIP resolution)
+- TypeScript
+- React
+- Vite
+- Tailwind CSS
 
-## Prerequisites
+## Project Structure
 
-- **Node.js** (v18+) for the frontend.
-- **Python** (3.9+) for the backend.
-- **Ollama** installed locally (with `llama3.1` model pulled) for the AI Analyst feature.
+- `dlp-frontend/src/DLPDashboard.tsx` - Main analytical dashboard view
+- `dlp-frontend/src/utils/` - Flow analysis and geolocation helper modules
 
-## Setup and Running
-
-### 1. Backend (`dlp-backend`)
-Note: Packet capturing with `scapy` requires elevated privileges (sudo).
+## Installation
 
 ```bash
-cd dlp-backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-
-# Start the server (runs on port 8000)
-sudo ./venv/bin/python -m uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-### 2. Frontend (`dlp-frontend`)
-```bash
-cd dlp-frontend
+git clone https://github.com/harmless-bot/harmlessmonitor.git
+cd harmlessmonitor/dlp-frontend
 npm install
-
-# Start the development server (runs on port 5173)
 npm run dev
 ```
 
-### 3. AI Analyst (Ollama)
-Ensure your local Ollama server is running in the background:
-```bash
-ollama serve
-```
+## Scripts
+
+- `npm run dev` - Launch local Vite dev server
+- `npm run build` - Generate production bundle
+
+## Contributing
+
+Check formatting with ESLint before opening pull requests.
 
 ## License
 
-MIT
+MIT License.
